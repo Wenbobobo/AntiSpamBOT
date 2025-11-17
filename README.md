@@ -176,7 +176,7 @@ if passed -> ActionExecutor.enforce() -> close case -> update inline text/log
 ### 本地运行
 1. `uv pip install -e .[test]` 安装依赖（含测试插件）。
 2. 复制 `config.example.toml` 为 `config.toml`，在 `.env` 中写入 `BOT_TOKEN=...`。
-3. `.\.venv\Scripts\python main.py` 或 `uv run python -m jurybot.app --config config.toml` 启动长轮询 Bot。（确保已 `uv pip install -e .`，或在仓库根目录运行以便 Python 直接找到 `jurybot` 包。）
+3. `.\.venv\Scripts\python main.py` 或 `uv run python -m jurybot.app --config config.toml` 启动长轮询 Bot。（确保已 `uv pip install -e .`；若仍提示找不到 `jurybot`，在仓库根执行一次 `uv pip install -e .` 以写入可编辑安装。）
 
 ### 运行测试
 ```

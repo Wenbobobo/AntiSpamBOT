@@ -7,10 +7,12 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
 from aiogram.types import (
     CallbackQuery,
+    Chat,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
 )
+import contextlib
 
 from .config import ChatSettings, load_config
 from .services.admin import AdminService
@@ -134,6 +136,7 @@ class JuryBotApp:
         # In group/supergroup: manage current chat directly.
         if message.chat.type in {"group", "supergroup"}:
             chat_id = message.chat.id
+            await self._ensure_chat_record(chat_id, message.chat.title or "")
         else:
             # Private: allow optional chat_id argument or show picker.
             if len(args) < 2:
@@ -146,6 +149,7 @@ class JuryBotApp:
         if not await self._ensure_admin(message.from_user.id, chat_id):
             await message.answer("你不是该群的管理员。")
             return
+        await self._try_fetch_and_store_chat(chat_id)
         await self._send_config_panel(message, chat_id)
 
     async def _handle_set_command(self, message: Message) -> None:
@@ -227,6 +231,12 @@ class JuryBotApp:
                 )
             await callback.answer()
             return
+        if action == "close":
+            if callback.message:
+                with contextlib.suppress(Exception):
+                    await callback.message.delete()
+            await callback.answer()
+            return
 
         if len(data) < 3:
             await callback.answer("缺少 chat_id。", show_alert=True)
@@ -243,6 +253,7 @@ class JuryBotApp:
 
         try:
             if action == "select":
+                await self._try_fetch_and_store_chat(chat_id)
                 if callback.message:
                     await self._render_config_panel(callback.message, chat_id)
             elif action == "adj":
@@ -424,12 +435,31 @@ class JuryBotApp:
                         callback_data="cfg:list",
                     )
                 ],
+                [
+                    InlineKeyboardButton(
+                        text="关闭面板",
+                        callback_data="cfg:close",
+                    )
+                ],
             ]
         )
         return keyboard
 
     async def _ensure_admin(self, user_id: int, chat_id: int) -> bool:
         return await self.admin_service.ensure_admin(user_id, chat_id)
+
+    async def _ensure_chat_record(self, chat_id: int, title: str | None) -> None:
+        await self.storage.upsert_chat(chat_id, title or "")
+
+    async def _try_fetch_and_store_chat(self, chat_id: int) -> None:
+        title = await self.storage.get_chat_title(chat_id)
+        if title:
+            return
+        try:
+            chat: Chat = await self.bot.get_chat(chat_id)
+        except TelegramBadRequest:
+            return
+        await self.storage.upsert_chat(chat_id, chat.title or "")
 
     @staticmethod
     def _parse_int(value: str) -> Optional[int]:

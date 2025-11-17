@@ -1,0 +1,39 @@
+[bot]
+# Path to the file that contains BOT_TOKEN=... (relative paths resolve from this file)
+token_file = ".env"
+# SQLite DSN for local demo. Replace with D1 adapter URL in production.
+storage_url = "sqlite:///jurybot.db"
+# Python logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level = "INFO"
+
+[defaults]
+# At least 5% of active members must vote before a case can pass.
+min_participation_ratio = 0.05
+# Minimum number of voters regardless of ratio.
+min_participation_count = 5
+# Share of “Spam” votes required to convict (0.6 = 60%).
+approval_ratio = 0.6
+# Require both ratio and count by default; alternatives: ratio_only, count_only.
+quorum_strategy = "ratio_and_count"
+# Action enforced after conviction: ban, kick, delete_only, or mute.
+action_on_confirm = "ban"
+# Mute duration (seconds) when action_on_confirm = "mute".
+mute_duration_sec = 3600
+# Add convicted users to blacklist for fast future handling.
+blacklist_enabled = true
+# Voting window in seconds before a case auto-expires (default 4h).
+vote_timeout_sec = 14400
+# Allow members to retract their vote.
+allow_vote_retract = true
+# Per-user /spam report quota per hour.
+max_cases_per_user_hour = 3
+# If the flagged message disappears, auto-close the case.
+auto_close_on_deleted_msg = true
+# Ignore reporters/voters whose account age is below this threshold (0 disables).
+min_account_age_hours = 0
+
+[admin_ui]
+# Bot super administrators who can configure any chat without being an in-chat admin.
+owner_ids = [
+    123456789
+]

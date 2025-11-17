@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+.env
+codex.txt
+error.txt
+jurybot.db
+config.toml

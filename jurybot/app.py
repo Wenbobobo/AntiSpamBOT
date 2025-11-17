@@ -90,39 +90,35 @@ class JuryBotApp:
 
         admin_router = Router(name="admin")
 
-        @admin_router.message(Command("start"))
-        async def admin_start(message: Message) -> None:
-            if message.chat.type != "private":
-                return
-            summary = await self.admin_service.list_chats_summary(
-                message.from_user.id
-            )
-            await message.answer(
-                "欢迎使用 JuryBot 管理界面。\n"
-                "使用 /config <chat_id> 查看设置，/set <chat_id> <字段> <值> 修改。\n\n"
-                + summary
-            )
-
         @admin_router.message(Command("config"))
         async def admin_config(message: Message) -> None:
             await self._handle_config_command(message)
 
-        @admin_router.message(Command("manage"))
-        async def admin_manage(message: Message) -> None:
-            if message.chat.type != "private":
-                return
-            await self._send_chat_picker(message, message.from_user.id)
-
         @admin_router.message(Command("set"))
         async def admin_set(message: Message) -> None:
+            if message.chat.type != "private":
+                return
+            if not self._is_owner(message.from_user.id):
+                await message.answer("仅 Bot 超级管理员可用。")
+                return
             await self._handle_set_command(message)
 
         @admin_router.message(Command("stats"))
         async def admin_stats(message: Message) -> None:
+            if message.chat.type != "private":
+                return
+            if not self._is_owner(message.from_user.id):
+                await message.answer("仅 Bot 超级管理员可用。")
+                return
             await self._handle_stats_command(message)
 
         @admin_router.message(Command("blacklist"))
         async def admin_blacklist(message: Message) -> None:
+            if message.chat.type != "private":
+                return
+            if not self._is_owner(message.from_user.id):
+                await message.answer("仅 Bot 超级管理员可用。")
+                return
             await self._handle_blacklist_command(message)
 
         @admin_router.callback_query(F.data.startswith("cfg:"))
@@ -132,23 +128,18 @@ class JuryBotApp:
         self.dp.include_routers(report_router, admin_router)
 
     async def _handle_config_command(self, message: Message) -> None:
-        args = (message.text or "").split()
-        # In group/supergroup: manage current chat directly.
-        if message.chat.type in {"group", "supergroup"}:
-            chat_id = message.chat.id
-            await self._ensure_chat_record(chat_id, message.chat.title or "")
-        else:
-            # Private: allow optional chat_id argument or show picker.
-            if len(args) < 2:
-                await self._send_chat_picker(message, message.from_user.id)
-                return
-            chat_id = self._parse_int(args[1])
-            if chat_id is None:
-                await message.answer("请输入正确的 chat_id。")
-                return
-        if not await self._ensure_admin(message.from_user.id, chat_id):
-            await message.answer("你不是该群的管理员。")
+        # Restrict configuration to being run inside the target group/supergroup.
+        if message.chat.type not in {"group", "supergroup"}:
+            await message.answer("请在需要管理的群组内发送 /config。")
             return
+
+        chat_id = message.chat.id
+        await self._ensure_chat_record(chat_id, message.chat.title or "")
+
+        if not await self._ensure_admin(message.from_user.id, chat_id):
+            await message.reply("你不是该群的管理员。")
+            return
+
         await self._try_fetch_and_store_chat(chat_id)
         await self._send_config_panel(message, chat_id)
 
@@ -467,6 +458,9 @@ class JuryBotApp:
             return int(value)
         except ValueError:
             return None
+
+    def _is_owner(self, user_id: int) -> bool:
+        return user_id in self.config.admin_ui.owner_ids
 
 
 async def run_bot(config_path: str | Path = "config.toml") -> None:

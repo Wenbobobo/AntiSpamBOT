@@ -144,7 +144,7 @@ class CaseService:
 
         asyncio.create_task(self._schedule_expiry_check(case.id, closes_at))
 
-        return "已创建投票，邀请成员判断是否为 Spam 消息。"
+        return ""
 
     async def _schedule_expiry_check(self, case_id: int, closes_at: datetime) -> None:
         delay = max((closes_at - datetime.now(tz=timezone.utc)).total_seconds(), 0)

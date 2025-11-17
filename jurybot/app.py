@@ -82,7 +82,8 @@ class JuryBotApp:
                 await message.answer("该命令仅在群组中有效。")
                 return
             response = await self.case_service.handle_report(message)
-            await message.reply(response)
+            if response:
+                await message.reply(response)
 
         @report_router.callback_query(F.data.startswith("jury:"))
         async def handle_vote(callback: CallbackQuery) -> None:
@@ -410,8 +411,8 @@ class JuryBotApp:
                     adj_button("+0.05", "apr", "0.05"),
                 ],
                 [
-                    adj_button("时限 -30s", "vts", "-30"),
-                    adj_button("+30s", "vts", "30"),
+                    adj_button("时限 -30m", "vts", str(-30 * 60)),
+                    adj_button("+30m", "vts", str(30 * 60)),
                 ],
                 [
                     adj_button("举报 -1", "mcu", "-1"),
